@@ -75,6 +75,10 @@ async function main(){
 			//execute get temp command
 			exec(temp_check_command, (a,b,c) => {
 			
+				//remove "temp=" and "'C"
+				b = b.replace("temp=", ""); 
+				b = b.replace("'C\n", "");
+
 				//create the log format object
 				const log_data = {
 					"time":Date.now(),
