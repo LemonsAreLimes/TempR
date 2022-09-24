@@ -10,13 +10,19 @@ function sleep(ms) {
 
 async function main(){
 
-	//CONFIG
-	const write_interval = 10000
-	var isTimeoutSet = false
+	// //CONFIG
+	// const temp_check_command = "vcgencmd measure_temp"
 
+	const temp_check_command = "echo hello world"
+
+	// const write_interval = 180000
+	// const check_interval = 10000
+	
+	const write_interval = 10000
+	const check_interval = 1000
+
+	var isTimeoutSet = false
 	var TempHr = []
-	const temp_interval = 1000
-	let temp_check_command = "echo hello world"
 
 	//main loop 
 	while (true) {
@@ -31,17 +37,32 @@ async function main(){
 
 				//get the current time
 				const date_time = new Date()
-				const write_time =  date_time.getUTCFullYear()+'_'+date_time.getUTCMonth()+'_'+date_time.getUTCDate()+'_'+date_time.getUTCHours()+'_'+date_time.getUTCMinutes()
+				const write_time =  date_time.getUTCFullYear()+'_'+date_time.getUTCMonth()+'_'+date_time.getUTCDate()
 
 				//initalize the logfile dir and name
-				const log_file = `./logs/${write_time}.txt`
+				const log_file_dir = `./logs/${write_time}.json`
 
-				//parse out the temphr list 
-				var parsed_TempHr = ''
-				for(i in TempHr){parsed_TempHr += TempHr[i] + '\n'}
+				//check if a dayly logfile has aready been created
+				try {
 
-				//write to the logfile
-				fs.writeFileSync(log_file, parsed_TempHr, (a, b)=>{console.log(a + b)});
+					console.log('file exits')
+
+					//open the file 
+					const logfile = require(log_file_dir);
+
+					//append new data
+					for (i in TempHr){ logfile.push(TempHr[i]) }
+
+					//write to the file
+					fs.writeFileSync(log_file_dir, JSON.stringify(logfile), 'utf-8', (a, b)=>{console.log(a + b)});
+
+				} catch (err) {
+
+					console.log('dayly logfile does not exist!');
+
+					//create and write to file				
+					fs.writeFileSync(log_file_dir, JSON.stringify(TempHr), 'utf-8', (a, b)=>{console.log(a + b)});
+				}
 
 				//reset the timeout and temphr
 				isTimeoutSet = false
@@ -51,19 +72,21 @@ async function main(){
 
 		} else {
 
-			//get the time of mesure 
-			const curr_date_time = new Date();
-			const log_time = `${curr_date_time.getHours()}:${curr_date_time.getMinutes()}:${curr_date_time.getSeconds()}`
-
 			//execute get temp command
 			exec(temp_check_command, (a,b,c) => {
 			
+				//create the log format object
+				const log_data = {
+					"time":Date.now(),
+					"temp":b
+				}
+
 				//add it to the HourTemp list
-				TempHr.push(`${log_time}  =  ${b}`);
+				TempHr.push(log_data);
 			})
 
-			//wait untill interval
-			await sleep(temp_interval)
+			//wait untill next check interval
+			await sleep(check_interval)
 		}
 	}
 }
